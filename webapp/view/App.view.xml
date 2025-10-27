@@ -1,0 +1,132 @@
+<mvc:View
+    controllerName="com.my.users.controller.App"
+    displayBlock="true"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    height="100%"
+>
+    <!-- Usamos una Page como contenedor principal para poder poner la ShellBar (OverflowToolbar) en la parte superior, fija. El contenido de esta página será el SplitApp. -->
+    <Page
+        id="shellPage"
+        showHeader="true"
+        enableScrolling="false"
+    >
+        <customHeader>
+            <!-- 1. Esta es tu <ShellBar> -->
+            <OverflowToolbar id="shellBar">
+                <!-- El botón para colapsar el menú -->
+                <Button
+                    id="menuButton"
+                    icon="sap-icon://menu2"
+                    press=".onMenuButtonPress"
+                />
+                <Image
+                    src="/img/logo.png"
+                    height="2.5rem"
+                    class="sapUiTinyMarginBeginEnd"
+                />
+                <Title text="Usuarios" />
+                <ToolbarSpacer />
+                <Button icon="sap-icon://search" />
+                <Button icon="sap-icon://account" />
+            </OverflowToolbar>
+        </customHeader>
+        <content>
+            <!-- 2. Este SplitApp reemplaza tu <div> y CSS. Maneja el menú lateral y el contenido principal. -->
+            <SplitApp
+                id="splitApp"
+                mode="ShowHideMode"
+            >
+                <!-- 3. masterPages es tu <SideNavigation> -->
+                <masterPages>
+                    <Page
+                        id="masterPage"
+                        showHeader="false"
+                        class="sapUiResponsivePadding--remove"
+                    >
+                        <!-- Reemplazamos tnt:NavigationList con sap.m.List. Usamos el evento 'itemPress' en lugar de 'onItemSelect'. -->
+                        <List
+                            id="navList"
+                            mode="None"
+                            itemPress=".onSideNavSelection"
+                        >
+                            <!-- Usamos un GroupHeaderListItem para el título que antes era un NavigationListItem expandido. -->
+                            <GroupHeaderListItem title="Gestión de Usuarios" />
+                            <!-- Usamos StandardListItem para los items. El 'key' se almacena en 'customData' ya que StandardListItem no tiene una propiedad 'key'. -->
+                            <StandardListItem
+                                title="Usuarios"
+                                icon="sap-icon://employee"
+                                type="Active"
+                            >
+                                <customData>
+                                    <core:CustomData
+                                        key="key"
+                                        value="users"
+                                    />
+                                </customData>
+                            </StandardListItem>
+                            <StandardListItem
+                                title="Roles"
+                                icon="sap-icon://role"
+                                type="Active"
+                            >
+                                <customData>
+                                    <core:CustomData
+                                        key="key"
+                                        value="roles"
+                                    />
+                                </customData>
+                            </StandardListItem>
+                            <!-- Items simples -->
+                            <StandardListItem
+                                title="Aplicaciones"
+                                icon="sap-icon://desktop-mobile"
+                                type="Active"
+                            >
+                                <customData>
+                                    <core:CustomData
+                                        key="key"
+                                        value="apps"
+                                    />
+                                </customData>
+                            </StandardListItem>
+                            <StandardListItem
+                                title="Procesos"
+                                icon="sap-icon://process"
+                                type="Active"
+                            >
+                                <customData>
+                                    <core:CustomData
+                                        key="key"
+                                        value="process"
+                                    />
+                                </customData>
+                            </StandardListItem>
+                        </List>
+                    </Page>
+                </masterPages>
+                <!-- 4. detailPages es tu <Outlet />. Usamos un <App> (o NavContainer) para que actúe como el router que carga las diferentes vistas. -->
+                <detailPages>
+                    <App id="navContainer">
+                        <!-- Aquí cargarás tus vistas (Users, Roles, etc.) -->
+                        <!-- Es buena idea tener una página de bienvenida -->
+                        <Page
+                            id="welcomePage"
+                            title="Bienvenido"
+                        >
+                            <content>
+                                <MessagePage
+                                    title="Bienvenido"
+                                    text="Seleccione una opción del menú lateral para comenzar."
+                                    icon="sap-icon://home"
+                                    description=""
+                                />
+                            </content>
+                        </Page>
+                    </App>
+                </detailPages>
+            </SplitApp>
+        </content>
+    </Page>
+</mvc:View>

@@ -1,0 +1,89 @@
+<mvc:View
+  controllerName="com.my.users.controller.Users"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  displayBlock="true"
+>
+
+  <Page id="usersPage" title="Usuarios">
+    <content>
+
+      <!-- Barra superior con buscador y botones CRUD -->
+      <Toolbar>
+        <SearchField
+          id="searchField"
+          placeholder="Buscar..."
+          liveChange=".onSearch"
+          width="20rem"
+        />
+        <Button
+          icon="sap-icon://add"
+          tooltip="Agregar usuario"
+          press=".onAddUser"
+        />
+        <Button
+          icon="sap-icon://hint"
+          tooltip="Detalles del usuario"
+          press=".onShowDetails"
+          enabled="{= !!${selectedUser} }"
+        />
+        <Button
+          icon="sap-icon://edit"
+          tooltip="Editar usuario"
+          press=".onEditUser"
+          enabled="{= !!${selectedUser} }"
+        />
+        <Button
+          icon="sap-icon://delete"
+          tooltip="Eliminar usuario"
+          press=".onDeleteUser"
+          enabled="{= !!${selectedUser} }"
+        />
+        <ToolbarSpacer />
+        <Title text="Usuarios ({= ${/users}.length })" />
+      </Toolbar>
+
+      <!-- Tabla de usuarios -->
+      <Table
+        id="usersTable"
+        inset="false"
+        mode="SingleSelectMaster"
+        items="{
+          path: 'usersModel>/users'
+        }"
+        selectionChange=".onRowSelect"
+      >
+        <columns>
+          <Column><Text text="User ID" /></Column>
+          <Column><Text text="Nombre de Usuario" /></Column>
+          <Column><Text text="Alias" /></Column>
+          <Column><Text text="Correo Electrónico" /></Column>
+          <Column><Text text="Teléfono" /></Column>
+          <Column><Text text="Extensión" /></Column>
+          <Column><Text text="Activo" /></Column>
+        </columns>
+
+        <items>
+          <ColumnListItem>
+            <cells>
+            
+              <Text text="{usersModel>USERID}" />
+              <Text text="{usersModel>USERNAME}" />
+              <Text text="{usersModel>ALIAS}" />
+              <Text text="{usersModel>EMAIL}" />
+              <Text text="{usersModel>PHONENUMBER}" />
+              <Text text="{usersModel>EXTENSION}" />
+              <ObjectStatus
+                text="{= ${usersModel>ACTIVED} ? 'Activo' : 'Inactivo' }"
+                state="{= ${usersModel>ACTIVED} ? 'Success' : 'Error' }"
+                icon="{= ${usersModel>ACTIVED} ? 'sap-icon://accept' : 'sap-icon://decline' }"
+              />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+
+    </content>
+  </Page>
+</mvc:View>
