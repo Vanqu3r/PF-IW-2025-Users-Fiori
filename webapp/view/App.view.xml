@@ -6,16 +6,15 @@
     xmlns:core="sap.ui.core"
     height="100%"
 >
-    <!-- Usamos una Page como contenedor principal para poder poner la ShellBar (OverflowToolbar) en la parte superior, fija. El contenido de esta página será el SplitApp. -->
     <Page
         id="shellPage"
         showHeader="true"
         enableScrolling="false"
     >
         <customHeader>
-            <!-- 1. Esta es tu <ShellBar> -->
+
             <OverflowToolbar id="shellBar">
-                <!-- El botón para colapsar el menú -->
+                <!-- El botón para colapsar el menú no funcionaaa -->
                 <Button
                     id="menuButton"
                     icon="sap-icon://menu2"
@@ -33,27 +32,25 @@
             </OverflowToolbar>
         </customHeader>
         <content>
-            <!-- 2. Este SplitApp reemplaza tu <div> y CSS. Maneja el menú lateral y el contenido principal. -->
+
             <SplitApp
                 id="splitApp"
                 mode="ShowHideMode"
             >
-                <!-- 3. masterPages es tu <SideNavigation> -->
                 <masterPages>
                     <Page
                         id="masterPage"
                         showHeader="false"
                         class="sapUiResponsivePadding--remove"
                     >
-                        <!-- Reemplazamos tnt:NavigationList con sap.m.List. Usamos el evento 'itemPress' en lugar de 'onItemSelect'. -->
                         <List
                             id="navList"
                             mode="None"
                             itemPress=".onSideNavSelection"
                         >
-                            <!-- Usamos un GroupHeaderListItem para el título que antes era un NavigationListItem expandido. -->
+                       
                             <GroupHeaderListItem title="Gestión de Usuarios" />
-                            <!-- Usamos StandardListItem para los items. El 'key' se almacena en 'customData' ya que StandardListItem no tiene una propiedad 'key'. -->
+                 
                             <StandardListItem
                                 title="Usuarios"
                                 icon="sap-icon://employee"
@@ -106,11 +103,9 @@
                         </List>
                     </Page>
                 </masterPages>
-                <!-- 4. detailPages es tu <Outlet />. Usamos un <App> (o NavContainer) para que actúe como el router que carga las diferentes vistas. -->
                 <detailPages>
                     <App id="navContainer">
-                        <!-- Aquí cargarás tus vistas (Users, Roles, etc.) -->
-                        <!-- Es buena idea tener una página de bienvenida -->
+                  
                         <Page
                             id="welcomePage"
                             title="Bienvenido"

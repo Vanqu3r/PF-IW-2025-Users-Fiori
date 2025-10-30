@@ -69,8 +69,6 @@ sap.ui.define(
 						return response.json();
 					})
 					.then((data) => {
-						//  La API devuelve algo muy anidado.
-						// Aquí extraemos solo el array de usuarios.
 						const users = data?.value?.[0]?.data?.[0]?.dataRes || [];
 
 						if (!Array.isArray(users) || users.length === 0) {
@@ -79,7 +77,6 @@ sap.ui.define(
 							return;
 						}
 
-						// Guardamos los usuarios en el modelo
 						oModel.setProperty("/users", users);
 
 						MessageToast.show("Usuarios cargados correctamente.");
@@ -96,19 +93,14 @@ sap.ui.define(
 				this._loadUsersFromAPI();
 			},
 
-			//Modal add user
 			onAddUser: function () {
 				var oView = this.getView();
 
-				// 1. Poner el flag de edición en 'false'
 				this.getView().getModel("viewModel").setProperty("/isEditMode", false);
 
-				// 2. Limpiar el 'formModel' con un usuario en blanco
 				this.getView().getModel("formModel").setData(this._getBlankUser());
 
-				// 3. Cargar el diálogo (sin cambios aquí)
 				if (!this._pUserFormDialog) {
-					// Renombrado de '_pAddUserDialog'
 					this._pUserFormDialog = Fragment.load({
 						name: "com.my.users.fragment.AddUserDialog",
 						type: "XML",
@@ -119,7 +111,6 @@ sap.ui.define(
 					});
 				}
 
-				// 4. Abrir el diálogo
 				this._pUserFormDialog.then(function (oDialog) {
 					oDialog.open();
 				});
@@ -131,17 +122,12 @@ sap.ui.define(
 					.getModel("viewModel")
 					.getProperty("/selectedUser");
 
-				// 1. Poner el flag de edición en 'true'
 				this.getView().getModel("viewModel").setProperty("/isEditMode", true);
 
-				// 2. (LA CLAVE) Cargar los datos del usuario seleccionado en el 'formModel'
-				// Usamos JSON.parse/stringify para hacer una COPIA PROFUNDA.
-				// Si no, al editar el formulario, ¡editarías la tabla directamente!
 				this.getView()
 					.getModel("formModel")
 					.setData(JSON.parse(JSON.stringify(oSelectedUser)));
 
-				// 3. Cargar y abrir el MISMO diálogo
 				if (!this._pUserFormDialog) {
 					this._pUserFormDialog = Fragment.load({
 						name: "com.my.users.fragment.AddUserDialog",
@@ -157,14 +143,12 @@ sap.ui.define(
 				});
 			},
 
-			// --- Renombrado para que coincida con el nuevo propósito ---
 			onCancelForm: function () {
 				this._pUserFormDialog.then(function (oDialog) {
 					oDialog.close();
 				});
 			},
 
-			// --- 'SAVE' MODIFICADO (Ahora es 'Crear' O 'Actualizar') ---
 			onSaveUser: function () {
 				const bIsEditMode = this.getView()
 					.getModel("viewModel")
@@ -202,7 +186,6 @@ sap.ui.define(
 				const sUrl =
 					"http://localhost:3333/api/users/crud?ProcessType=postUsuario&DBServer=MongoDB&LoggedUser=AGUIZARE";
 
-				// ... (Tu 'fetch' para CREAR, sin cambios) ...
 				fetch(sUrl, {
 					method: "POST",
 					headers: {
@@ -251,12 +234,11 @@ sap.ui.define(
 				console.log(oUpdatedUserData);
 				const oFinalPayload = { usuario: oUpdatedUserData };
 
-				// 🔹 URL de Actualización (¡Adivinando 'putUsuario'!)
 				const sUrl =
 					"http://localhost:3333/api/users/crud?ProcessType=updateOne&DBServer=MongoDB&LoggedUser=AGUIZARE";
 
 				fetch(sUrl, {
-					method: "POST", // O "PUT", según tu API
+					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(oFinalPayload),
 				})
@@ -291,7 +273,6 @@ sap.ui.define(
 				const oBinding = oTable.getBinding("items");
 
 				if (sQuery) {
-					// Filtramos por USERNAME. Puedes añadir más campos.
 					const oFilter = new Filter({
 						path: "USERNAME",
 						operator: FilterOperator.Contains,
@@ -303,14 +284,14 @@ sap.ui.define(
 				}
 			},
 
-			// Obtenemos el objeto 'usuario' de la fila seleccionada
+			//  objeto 'usuario' de la fila seleccionada
 			onRowSelect: function (oEvent) {
 				const oContext = oEvent
 					.getParameter("listItem")
 					.getBindingContext("usersModel");
 				const oSelectedUser = oContext.getObject();
 
-				// Guardamos ese objeto en nuestro 'viewModel'
+				//
 				this.getView()
 					.getModel("viewModel")
 					.setProperty("/selectedUser", oSelectedUser);
@@ -322,14 +303,14 @@ sap.ui.define(
 					.getModel("viewModel")
 					.getProperty("/selectedUser");
 
-				// Verificación (aunque el botón debería estar deshabilitado)
+				// Verificación
 				if (!oSelectedUser) {
 					MessageToast.show("Por favor, selecciona un usuario para eliminar.");
 					return;
 				}
 
 				// Guardamos el usuario a eliminar en un modelo para que el fragmento lo lea
-				// (Basado en tu fragmento que usa 'UserModelDelete')
+
 				if (!this.getView().getModel("UserModelDelete")) {
 					this.getView().setModel(new JSONModel(), "UserModelDelete");
 				}
@@ -339,7 +320,7 @@ sap.ui.define(
 				var oView = this.getView();
 				if (!this._pDeleteUserDialog) {
 					this._pDeleteUserDialog = Fragment.load({
-						name: "com.my.users.fragment.DeleteUserDialog", // Asegúrate que esta sea la ruta correcta
+						name: "com.my.users.fragment.DeleteUserDialog",
 						type: "XML",
 						controller: this,
 					}).then(function (oDialog) {
@@ -350,17 +331,10 @@ sap.ui.define(
 				this._pDeleteUserDialog.then((oDialog) => oDialog.open());
 			},
 
-			/**
-			 * Cierra el diálogo de confirmación de borrado
-			 */
 			onCancelDeleteUser: function () {
 				this._pDeleteUserDialog.then((oDialog) => oDialog.close());
 			},
 
-			/**
-			 * Se llama desde el botón 'Eliminar' (rojo) en el diálogo.
-			 * Ejecuta la lógica de borrado.
-			 */
 			onConfirmDelete: function () {
 				const oUserToDelete = this.getView()
 					.getModel("UserModelDelete")
