@@ -1,0 +1,61 @@
+<core:FragmentDefinition
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  xmlns:f="sap.ui.layout.form"
+>
+  <Dialog
+    title="{= ${viewModel>/isEditMode} ? 'Editar Usuario' : 'Agregar Nuevo Usuario' }"
+    contentWidth="30rem"
+  >
+    <content>
+      <f:SimpleForm editable="true" layout="ResponsiveGridLayout">
+        <f:content>
+          
+          <Label text="User ID" required="true" />
+          <Input 
+            value="{formModel>/USERID}" 
+            editable="{= !${viewModel>/isEditMode} }" 
+          />
+          
+          <Label text="Nombre de Usuario" required="true" />
+          <Input value="{formModel>/USERNAME}" />
+
+          <Label text="Correo Electrónico" required="true" />
+          <Input type="Email" value="{formModel>/EMAIL}" />
+          
+          <Label text="Alias" />
+          <Input value="{formModel>/ALIAS}" />
+          
+          <Label text="Teléfono" />
+          <Input type="Tel" value="{formModel>/PHONENUMBER}" />
+
+          <Label text="Extensión" />
+          <Input value="{formModel>/EXTENSION}" />
+
+          <Label text="ID Compañía" required="true" />
+          <Input type="Number" value="{formModel>/COMPANYID}" />
+          
+          <Label text="ID CEDI" required="true" />
+          <Input type="Number" value="{formModel>/CEDIID}" />
+          
+          <Label text="ID Empleado" required="true" />
+          <Input type="Number" value="{formModel>/EMPLOYEEID}" />
+
+        </f:content>
+      </f:SimpleForm>
+    </content>
+
+    <beginButton>
+      <Button
+        text="Guardar"
+        type="Emphasized"
+        press=".onSaveUser" 
+      />
+    </beginButton>
+    <endButton>
+      <Button
+        text="Cancelar"
+        press=".onCancelForm" />
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

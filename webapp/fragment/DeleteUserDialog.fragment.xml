@@ -1,0 +1,37 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+>
+    <Dialog
+        title="Eliminar Usuario"
+        contentWidth="25rem"
+        type="Message"
+    >
+        <content>
+            <VBox class="sapUiSmallMargin">
+                <Text text="¿Estás seguro de que deseas eliminar al usuario?" />
+
+                <FormattedText
+                    class="sapUiTinyMarginTop"
+                    htmlText="&lt;strong&gt;{UserModelDelete>/USERNAME}&lt;/strong&gt; (ID: {UserModelDelete>/USERID})"
+                />
+            </VBox>
+        </content>
+
+        <beginButton>
+            <Button
+                text="Eliminar"
+                type="Reject"
+                press=".onConfirmDelete"
+            />
+        </beginButton>
+
+        <endButton>
+            <Button
+                text="Cancelar"
+                type="Emphasized"
+                press=".onCancelDeleteUser"
+            />
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>
