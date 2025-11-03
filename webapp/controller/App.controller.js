@@ -49,10 +49,10 @@ sap.ui.define(
 					case "roles":
 						this._navToPage(oNavContainer, "com.my.users.view.Roles", "Roles");
 						break;
-					case "apps":
+					case "application":
 						this._navToPage(
 							oNavContainer,
-							"com.my.users.view.Apps",
+							"com.my.users.view.Application",
 							"Aplicaciones"
 						);
 						break;
