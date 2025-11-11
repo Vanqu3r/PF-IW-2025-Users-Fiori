@@ -1,0 +1,126 @@
+<mvc:View
+    controllerName="com.my.users.controller.Profile"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:l="sap.ui.layout"
+    xmlns="sap.m"
+    displayBlock="true">
+
+    <Page
+        id="profilePage"
+        title="{i18n>Perfil de Usuario}"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        busy="{/busy}"> 
+
+        <customHeader>
+            <Bar>
+                <contentLeft>
+                    <Button icon="sap-icon://nav-back" press=".onNavBack" />
+                </contentLeft>
+                <contentMiddle>
+                    <Title text="{i18n>Perfil de Usuario}" level="H2" />
+                </contentMiddle>
+                
+            
+                <contentRight>
+                    <Button 
+                        icon="sap-icon://role" 
+                        text="Asignar Rol" 
+                        press=".onNavToAssignRoles" 
+                        class="sapUiTinyMarginBeginEnd" />
+                </contentRight>
+
+            </Bar>
+        </customHeader>
+
+        <content>
+            <VBox class="sapUiContentPadding">
+                
+                <ObjectHeader
+                    title="{/value/0/data/0/dataRes/USERNAME}" 
+                    id="profileObjectHeader"
+                    icon="sap-icon://person-placeholder"
+                    responsive="true"
+                    backgroundDesign="Solid"
+                    class="sapUiSmallMarginBottom">
+                    <attributes>
+                        <ObjectAttribute text="{i18n>userIDLabel}: {/value/0/data/0/dataRes/USERID}" />
+                        <ObjectAttribute text="{/value/0/data/0/dataRes/ALIAS}" />
+                    </attributes>
+                </ObjectHeader>
+                
+                <Panel 
+                    headerText="{i18n>detailsTitle}" 
+                    expandable="false" 
+                    class="sapUiSmallMarginTop">
+                    
+                    <content>
+                        <form:SimpleForm
+                            editable="false"
+                            layout="ResponsiveGridLayout"
+                            labelSpanXL="3"
+                            labelSpanL="3"
+                            labelSpanM="3"
+                            labelSpanS="12"
+                            adjustLabelSpan="false"
+                            emptySpanXL="4"
+                            emptySpanL="4"
+                            emptySpanM="4"
+                            emptySpanS="0"
+                            columnsXL="1"
+                            columnsL="1"
+                            columnsM="1"
+                            singleContainerFullSize="false" >
+
+                            <core:Title text="{i18n>personalInfoTitle}" />
+                            
+                            <Label text="{i18n>nombreLabel}" />
+                            <Text text="{/value/0/data/0/dataRes/USERNAME}" /> 
+
+                            <Label text="{i18n>aliasLabel}" />
+                            <Text text="{/value/0/data/0/dataRes/ALIAS}" /> 
+                        
+                            <Label text="{i18n>cedulaIDLabel}" />
+                            <Text text="{/value/0/data/0/dataRes/CEDULAID}" />
+
+                            <core:Title text="{i18n>contactInfoTitle}" />
+                            
+                            <Label text="{i18n>emailLabel}" />
+                            <Text text="{/value/0/data/0/dataRes/EMAIL}" /> 
+
+                            <Label text="{i18n>telefonoLabel}" />
+                            <Text text="{/value/0/data/0/dataRes/PHONENUMBER}" /> 
+
+                            <Label text="{i18n>extensionLabel}" />
+                            <Text text="{/value/0/data/0/dataRes/EXTENSION}" /> 
+
+                            <core:Title text="{i18n>companyInfoTitle}" />
+
+                            <Label text="{i18n>positionLabel}" />
+
+                            <Label text="Roles" />
+                            <MultiInput
+                                editable="true" 
+                                showValueHelp="false"
+                                placeholder="Roles asignados..."
+                                tokens="{
+                                    path: '/value/0/data/0/dataRes/ROLES'
+                                }"
+                                tokenUpdate=".onRoleTokenUpdate"> 
+                                <tokens>
+                                    <Token text="{ROLEID}" key="{ROLEID}" />
+                                </tokens>
+                            </MultiInput>
+
+                            <Label text="{i18n>companyIDLabel}" />
+                            <Text text="{/value/0/data/0/dataRes/COMPANYID}" />
+
+                        </form:SimpleForm>
+                    </content>
+                </Panel>
+            </VBox>
+        </content>
+    </Page>
+</mvc:View>

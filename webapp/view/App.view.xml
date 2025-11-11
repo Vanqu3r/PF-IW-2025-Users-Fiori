@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
 <mvc:View
     controllerName="com.my.users.controller.App"
     displayBlock="true"
@@ -33,8 +34,9 @@
         </customHeader>
         <content>
 
+            <!-- CAMBIO CLAVE: El ID debe ser "app" para que el router lo encuentre. -->
             <SplitApp
-                id="splitApp"
+                id="app"
                 mode="ShowHideMode"
             >
                 <masterPages>
@@ -48,9 +50,9 @@
                             mode="None"
                             itemPress=".onSideNavSelection"
                         >
-                       
+                        
                             <GroupHeaderListItem title="Gestión de Usuarios" />
-                 
+                    
                             <StandardListItem
                                 title="Usuarios"
                                 icon="sap-icon://employee"
@@ -104,22 +106,20 @@
                     </Page>
                 </masterPages>
                 <detailPages>
-                    <App id="navContainer">
-                  
-                        <Page
-                            id="welcomePage"
-                            title="Bienvenido"
-                        >
-                            <content>
-                                <MessagePage
-                                    title="Bienvenido"
-                                    text="Seleccione una opción del menú lateral para comenzar."
-                                    icon="sap-icon://home"
-                                    description=""
+                    <!-- La página de bienvenida se inserta directamente en detailPages -->
+                    <Page
+                        id="welcomePage"
+                        title="Bienvenido"
+                    >
+                        <content>
+                            <MessagePage
+                                title="Bienvenido"
+                                text="Seleccione una opción del menú lateral para comenzar."
+                                icon="sap-icon://home"
+                                description=""
                                 />
-                            </content>
-                        </Page>
-                    </App>
+                        </content>
+                    </Page>
                 </detailPages>
             </SplitApp>
         </content>

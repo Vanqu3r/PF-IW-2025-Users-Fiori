@@ -2,17 +2,25 @@ specVersion: "3.1"
 metadata:
   name: com.my.users
 type: application
+framework:
+  name: SAPUI5
+  version: 1.141.2
+  libraries:
+    - name: sap.ui.core
+    - name: sap.m
+    - name: sap.f
+    - name: sap.ui.comp
+    - name: sap.ui.generic.app
+    - name: sap.ui.table
+    - name: sap.ushell
+    - name: themelib_sap_bluecrystal
+    - name: themelib_sap_horizon
 server:
   customMiddleware:
     - name: fiori-tools-proxy
       afterMiddleware: compression
       configuration:
         ignoreCertError: false
-        ui5:
-          path:
-            - /resources
-            - /test-resources
-          url: https://ui5.sap.com
     - name: fiori-tools-appreload
       afterMiddleware: compression
       configuration:
