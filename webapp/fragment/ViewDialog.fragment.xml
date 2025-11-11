@@ -1,0 +1,53 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.ui.layout.form"
+>
+    <Dialog
+        id="viewDialog"
+        contentWidth="30%"
+    >
+        <customHeader>
+            <Bar>
+                <contentLeft>
+                    <Title id="viewDialogTitle" />
+                </contentLeft>
+            </Bar>
+        </customHeader>
+
+        <content>
+            <f:SimpleForm
+                editable="true"
+                layout="ResponsiveGridLayout"
+            >
+                <Label text="VIEWID" required="true" />
+                <Input
+                    value="{viewModel>/viewFormData/VIEWSID}"
+                    required="true"
+                    maxLength="10"
+                    description="Máx. 10 caracteres"
+                    enabled="{= !${viewModel>/viewFormData/isEdit} }"
+                />
+
+                <Label text="Descripción" required="true" />
+                <Input
+                    value="{viewModel>/viewFormData/Descripcion}"
+                    required="true"
+                    maxLength="50"
+                />
+            </f:SimpleForm>
+        </content>
+
+        <buttons>
+            <Button
+                text="Guardar"
+                type="Emphasized"
+                press=".onSaveView"
+            />
+            <Button
+                text="Cancelar"
+                press=".onCloseDialog"
+            />
+        </buttons>
+    </Dialog>
+</core:FragmentDefinition>

@@ -1,0 +1,183 @@
+<mvc:View
+    controllerName="com.my.users.controller.Application"
+    xmlns:core="sap.ui.core"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:t="sap.ui.table"
+    xmlns:l="sap.ui.layout"
+    displayBlock="true"
+>
+    <Page
+        id="page"
+        title="Gestión de Privilegios por Aplicación"
+    >
+        <subHeader>
+            <Toolbar>
+                <Label text="Seleccionar Aplicación:" class="sapUiTinyMarginEnd" />
+                <Select
+                    id="appSelector"
+                    forceSelection="false"
+                    width="400px"
+                    change=".onAppSelectionChange"
+                    selectedKey="{viewModel>/selectedAppId}"
+                    items="{viewModel>/applications}"
+                >
+                    <core:Item key="{viewModel>APPID}" text="{viewModel>NAME}" />
+                </Select>
+            </Toolbar>
+        </subHeader>
+
+        <content>
+            <l:Splitter
+                id="mainSplitter"
+                orientation="Horizontal"
+                height="calc(100vh - 92px)" >
+                <l:contentAreas>
+                    
+                    <l:VerticalLayout width="100%" height="100%">
+                        <l:layoutData>
+                            <l:SplitterLayoutData size="40%" />
+                        </l:layoutData>
+                        
+                        <ScrollContainer height="100%" vertical="true">
+                            <content>
+                                <t:Table
+                                    id="viewsTable"
+                                    rows="{viewModel>/views}" selectionMode="Single"
+                                    rowSelectionChange=".onViewSelectionChange"
+                                    visibleRowCount="8"
+                                    ariaLabelledBy="title"
+                                >
+                                    <t:toolbar>
+                                        <Toolbar>
+                                            <SearchField
+                                                width="60%"
+                                                placeholder="Buscar vista..."
+                                                liveChange=".onSearchViews"
+                                                enabled="{= !!${viewModel>/selectedAppId} }"
+                                            />
+                                            <ToolbarSpacer />
+                                            <Button icon="sap-icon://add" type="Positive" press=".onCreateView" enabled="{= !!${viewModel>/selectedAppId} }" />
+                                            <Button icon="sap-icon://edit" type="Attention" press=".onEditView" enabled="{= !!${viewModel>/selectedView} }" />
+                                            <Button icon="sap-icon://delete" type="Negative" press=".onDeleteView" enabled="{= !!${viewModel>/selectedView} }" />
+                                        </Toolbar>
+                                    </t:toolbar>
+                                    <t:columns>
+                                        <t:Column width="10rem">
+                                            <Label text="VIEWID" />
+                                            <t:template>
+                                                <Text text="{viewModel>VIEWSID}" wrapping="false" />
+                                            </t:template>
+                                        </t:Column>
+                                        <t:Column>
+                                            <Label text="Descripción" />
+                                            <t:template>
+                                                <Text text="{viewModel>Descripcion}" wrapping="false" />
+                                            </t:template>
+                                        </t:Column>
+                                    </t:columns>
+                                </t:Table>
+                            </content>
+                        </ScrollContainer>
+                    </l:VerticalLayout>
+
+                    <l:Splitter
+                        id="nestedSplitter"
+                        orientation="Horizontal"
+                        height="100%"
+                    >
+                        <l:layoutData>
+                            <l:SplitterLayoutData size="60%" />
+                        </l:layoutData>
+                        <l:contentAreas>
+                            
+                            <l:VerticalLayout width="100%" height="100%">
+                                <l:layoutData>
+                                    <l:SplitterLayoutData size="50%" />
+                                </l:layoutData>
+                                
+                                <ScrollContainer height="100%" vertical="true">
+                                    <content>
+                                        <t:Table
+                                            id="processesTable"
+                                            rows="{viewModel>/filteredProcesses}"
+                                            selectionMode="Single"
+                                            rowSelectionChange=".onProcessSelectionChange"
+                                            visibleRowCount="8"
+                                        >
+                                            <t:toolbar>
+                                                <Toolbar>
+                                                    <SearchField width="60%" placeholder="Buscar proceso..." liveChange=".onSearchProcesses" enabled="{= !!${viewModel>/selectedView} }" />
+                                                    <ToolbarSpacer />
+                                                    <Button icon="sap-icon://add" type="Positive" press=".onCreateProcess" enabled="{= !!${viewModel>/selectedView} }" />
+                                                    <Button icon="sap-icon://delete" type="Negative" press=".onDeleteProcess" enabled="{= !!${viewModel>/selectedProcess} }" />
+                                                </Toolbar>
+                                            </t:toolbar>
+                                            <t:columns>
+                                                <t:Column width="10rem">
+                                                    <Label text="PROCESSID" />
+                                                    <t:template>
+                                                        <Text text="{viewModel>PROCESSID}" wrapping="false" />
+                                                    </t:template>
+                                                </t:Column>
+                                                <t:Column>
+                                                    <Label text="Descripción" />
+                                                    <t:template>
+                                                        <Text text="{viewModel>Descripcion}" wrapping="false" />
+                                                    </t:template>
+                                                </t:Column>
+                                            </t:columns>
+                                        </t:Table>
+                                    </content>
+                                </ScrollContainer>
+                            </l:VerticalLayout>
+
+                            <l:VerticalLayout width="100%" height="100%">
+                                <l:layoutData>
+                                    <l:SplitterLayoutData size="50%" />
+                                </l:layoutData>
+                                
+                                <ScrollContainer height="100%" vertical="true">
+                                    <content>
+                                        <t:Table
+                                            id="privilegesTable"
+                                            rows="{viewModel>/filteredPrivileges}"
+                                            selectionMode="Single"
+                                            rowSelectionChange=".onPrivilegeSelectionChange"
+                                            visibleRowCount="8"
+                                        >
+                                             <t:toolbar>
+                                                <Toolbar>
+                                                    <SearchField width="60%" placeholder="Buscar privilegio..." liveChange=".onSearchPrivileges" enabled="{= !!${viewModel>/selectedProcess} }" />
+                                                    <ToolbarSpacer />
+                                                    <Button icon="sap-icon://add" type="Positive" press=".onCreatePrivilege" enabled="{= !!${viewModel>/selectedProcess} }" />
+                                                    <Button icon="sap-icon://delete" type="Negative" press=".onDeletePrivilege" enabled="{= !!${viewModel>/selectedPrivilege} }" />
+                                                </Toolbar>
+                                            </t:toolbar>
+                                            <t:columns>
+                                                <t:Column width="10rem">
+                                                    <Label text="PRIVILEGIEID" />
+                                                    <t:template>
+                                                        <Text text="{viewModel>PRIVILEGIEID}" wrapping="false" />
+                                                    </t:template>
+                                                </t:Column>
+                                                <t:Column>
+                                                    <Label text="Descripción" />
+                                                    <t:template>
+                                                        <Text text="{viewModel>Descripcion}" wrapping="false" />
+                                                    </t:template>
+                                                </t:Column>
+                                            </t:columns>
+                                        </t:Table>
+                                    </content>
+                                </ScrollContainer>
+                            </l:VerticalLayout>
+                            
+                        </l:contentAreas>
+                    </l:Splitter>
+                    
+                </l:contentAreas>
+            </l:Splitter>
+        </content>
+    </Page>
+</mvc:View>

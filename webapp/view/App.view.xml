@@ -86,7 +86,7 @@
                                 <customData>
                                     <core:CustomData
                                         key="key"
-                                        value="apps"
+                                        value="application"
                                     />
                                 </customData>
                             </StandardListItem>

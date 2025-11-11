@@ -32,18 +32,43 @@ sap.ui.define([
 			}
 		},
 
-		/**
-		 * Evento al seleccionar un item del menú lateral
-		 */
-		onSideNavSelection: function (oEvent) {
-			var oItem = oEvent.getParameter("listItem");
-			// Obtener la clave de navegación (users, roles, apps, process)
-			var sKey = oItem.getCustomData()[0].getValue();
-            
-			if (sKey) {
-				// *** NAVEGACIÓN CORREGIDA: USAR EL ROUTER ***
-				// Esto coincide con las rutas definidas en tu manifest.json
-				this.oRouter.navTo(sKey);
+			/**
+			 * Evento al seleccionar un item del menú lateral
+			 */
+			onSideNavSelection: function (oEvent) {
+				var oItem = oEvent.getParameter("listItem");
+				var sKey = oItem.getCustomData()[0].getValue();
+
+				var oNavContainer = this.byId("navContainer");
+
+				switch (sKey) {
+					case "users":
+						this._navToPage(
+							oNavContainer,
+							"com.my.users.view.Users",
+							"Usuarios"
+						);
+						break;
+					case "roles":
+						this._navToPage(oNavContainer, "com.my.users.view.Roles", "Roles");
+						break;
+					case "apps":
+						this._navToPage(
+							oNavContainer,
+							"com.my.users.view.Apps",
+							"Aplicaciones"
+						);
+						break;
+					case "process":
+						this._navToPage(
+							oNavContainer,
+							"com.my.users.view.Process",
+							"Procesos"
+						);
+						break;
+					default:
+						MessageToast.show("Opción no disponible");
+				}
 
 				// Cerrar menú lateral si estamos en modo Popover (útil en móvil)
 				var oSplitApp = this.byId("app");
