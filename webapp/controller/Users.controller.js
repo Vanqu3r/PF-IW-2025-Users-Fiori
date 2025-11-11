@@ -1,16 +1,15 @@
 sap.ui.define(
-    [
-        "sap/ui/core/mvc/Controller",
-        "sap/ui/model/json/JSONModel",
-        "sap/m/MessageToast",
-        "sap/m/MessageBox",
-        "sap/ui/core/Fragment",
-        "sap/ui/model/Filter",
-        "sap/ui/model/FilterOperator",
-        "sap/ui/core/UIComponent", // Añadido para obtener el Router
-    ],
-    function (Controller, JSONModel, MessageToast, MessageBox, Fragment, Filter, FilterOperator, UIComponent) {
-        "use strict";
+	[
+		"sap/ui/core/mvc/Controller",
+		"sap/ui/model/json/JSONModel",
+		"sap/m/MessageToast",
+		"sap/m/MessageBox",
+		"sap/ui/core/Fragment",
+		"sap/ui/model/Filter",
+		"sap/ui/model/FilterOperator",
+	],
+	function (Controller, JSONModel, MessageToast, MessageBox, Fragment) {
+		"use strict";
 
         return Controller.extend("com.my.users.controller.Users", {
             //Esquema del JSON para un nuevo usuario
@@ -43,14 +42,9 @@ sap.ui.define(
                 this._loadUsersFromAPI();
                 //crear el modelo con los datos
 
-                const oFormModel = new JSONModel(this._getBlankUser());
-                this.getView().setModel(oFormModel, "formModel");
-            },
-            
-            // Función estándar para obtener el router
-            getRouter: function () {
-                return UIComponent.getRouterFor(this);
-            },
+				const oFormModel = new JSONModel(this._getBlankUser());
+				this.getView().setModel(oFormModel, "formModel");
+			},
 
             _loadUsersFromAPI: function () {
                 const oModel = this.getView().getModel("usersModel");
@@ -290,60 +284,18 @@ sap.ui.define(
                 }
             },
 
-            //Boton de información.
-            onShowDetails: function () {
-    const oSelectedUser = this.getView()
-        .getModel("viewModel")
-        .getProperty("/selectedUser");
+			//  objeto 'usuario' de la fila seleccionada
+			onRowSelect: function (oEvent) {
+				const oContext = oEvent
+					.getParameter("listItem")
+					.getBindingContext("usersModel");
+				const oSelectedUser = oContext.getObject();
 
-    // El botón ya está deshabilitado si no hay usuario, pero verificamos.
-    if (oSelectedUser && oSelectedUser.USERID) {
-        // Llama a la función de navegación, usando el ID del usuario seleccionado
-        this.onNavToProfile(oSelectedUser.USERID);
-    } else {
-        sap.m.MessageToast.show("Por favor, selecciona un usuario para ver detalles.");
-    }
-},
-
-            //  objeto 'usuario' de la fila seleccionada
-            onRowSelect: function (oEvent) {
-    const bSelected = oEvent.getParameter("selected"); 
-    const oListItem = oEvent.getParameter("listItem");
-    const oContext = oListItem.getBindingContext("usersModel");
-    const oViewModel = this.getView().getModel("viewModel");
-
-    if (bSelected) {
-        const oSelectedUser = oContext.getObject();
-        
-        // 1. Guardar el usuario seleccionado en el viewModel
-        // Esto automáticamente habilita los botones 'Detalles', 'Editar' y 'Eliminar'
-        oViewModel.setProperty("/selectedUser", oSelectedUser); 
-    } else {
-         // Si se deselecciona, limpia el selectedUser para desactivar los botones
-         oViewModel.setProperty("/selectedUser", null);
-    }
-    
-},
-            
-            // Lógica de navegación al perfil con verificación de router
-            onNavToProfile: function(sUserId) {
-                const oRouter = this.getRouter();
-                
-                if (!oRouter) {
-                    // Si el router no existe, muestra un mensaje y termina la ejecución
-                    MessageBox.error("Error de configuración: El Router de la aplicación no está disponible. Asegúrate de que el manifest.json y el componente estén configurados correctamente.");
-                    return;
-                }
-
-                if (sUserId) {
-                    // Navega a la ruta 'profile' pasando el USERID como argumento
-                    oRouter.navTo("profile", {
-                        userId: sUserId
-                    });
-                } else {
-                    MessageToast.show("ID de usuario no disponible para navegación.");
-                }
-            },
+				//
+				this.getView()
+					.getModel("viewModel")
+					.setProperty("/selectedUser", oSelectedUser);
+			},
 
             //Logica de delete
             onDeleteUser: function () {

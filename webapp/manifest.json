@@ -36,7 +36,9 @@
         "minUI5Version": "1.141.2",
         "libs": {
             "sap.ui.core": {},
-            "sap.m": {}
+            "sap.m": {},
+            "sap.ui.table": {},
+            "sap.ui.layout": {}
     
           
         }
@@ -82,9 +84,9 @@
                 "target": "roles"
             },
             {
-                "pattern": "apps",
-                "name": "apps",
-                "target": "apps"
+                "pattern": "application",
+                "name": "application",
+                "target": "application"
             },
             {
                 "pattern": "process",
@@ -105,9 +107,9 @@
                 "viewId": "roles",
                 "viewName": "Roles" 
             },
-            "apps": {
-                "viewId": "apps",
-                "viewName": "Apps" 
+            "application": {
+                "viewId": "application",
+                "viewName": "application" 
             },
             "process": {
                 "viewId": "process",

@@ -1,413 +1,650 @@
-sap.ui.define([
-    "./BaseController",
-    "sap/m/MessageBox",
-    "sap/ui/model/json/JSONModel",
-    "sap/ui/model/Filter",
-    "sap/ui/model/FilterOperator",
-    "sap/ui/core/Fragment"
-], function (BaseController, MessageBox, JSONModel, Filter, FilterOperator, Fragment) {
-    "use strict";
+sap.ui.define(
+	[
+		"./BaseController",
+		"sap/m/MessageBox",
+		"sap/ui/model/json/JSONModel",
+		"sap/ui/model/Filter",
+		"sap/ui/model/FilterOperator",
+		"sap/ui/core/Fragment",
+	],
+	function (
+		BaseController,
+		MessageBox,
+		JSONModel,
+		Filter,
+		FilterOperator,
+		Fragment
+	) {
+		"use strict";
 
-    return BaseController.extend("com.my.users.controller.Application", {
+		return BaseController.extend("com.my.users.controller.Application", {
+			_oViewDialog: null,
+			_sBaseUrl: "http://localhost:3333/api",
+			_sApiParams: "dbserver=MongoDB&LoggedUser=AGUIZARE",
 
-        _oViewDialog: null, 
+			onInit: function () {
+				// Modelo que contiene toda la data del módulo
+				const oViewModel = new JSONModel({
+					applications: [],       // Lista de aplicaciones
+					selectedAppId: null,    // Aplicación seleccionada
 
-        onInit: function () {
-            const oViewModel = new JSONModel({
-                // Lista de aplicaciones que vendrán del backend (para el Select)
-                applications: [],
+					masterViews: [],        // Lista de vistas maestras (todas las posibles)
+					masterDataMap: {},      // Mapa App → Vistas asignadas → Procesos
 
-                // Identificador de la aplicación elegida en el Select
-                selectedAppId: null,
+					views: [],              // Vistas mostradas en tabla (mezcla de maestras y asignadas)
+					processesMap: {},       // Mapa Vista → Procesos asignados
+					privilegesMap: {},      // Mapa Proceso → Privilegios asignados
 
-                // Guardamos toda la información recibida por cada aplicación (vistas + procesos)
-                masterDataMap: {},
+					filteredProcesses: [],  // Procesos de la vista seleccionada
+					filteredPrivileges: [], // Privilegios del proceso seleccionado
+					selectedView: null,
+					selectedProcess: null,
+					selectedPrivilege: null,
 
-                // Datos que se muestran en las tablas según lo que seleccione el usuario
-                views: [],
-                processesMap: {},
+					loading: false,         // Bandera para mostrar/loading
+					loadError: null,        // Error si algo falla al cargar
 
-                // Los privilegios aún son simulados localmente
-                privilegesMap: {},
+					viewFormData: {         // Datos del formulario para crear/editar vista
+						isEdit: false,
+						VIEWSID: "",
+						Descripcion: "",
+					},
 
-                // Datos filtrados según selección del usuario
-                filteredProcesses: [],
-                filteredPrivileges: [],
+					// Mock temporal para pruebas en UI
+					mockPrivileges: {
+						PROC001_UPDATED: [{ PRIVILEGIEID: "PR_UPD", Descripcion: "Actualizar" }],
+						PROC004: [{ PRIVILEGIEID: "PR_004", Descripcion: "Proceso 4" }],
+						PROC_FINAL_01: [{ PRIVILEGIEID: "PR_F01", Descripcion: "Proceso Final" }],
+						PROC001: [{ PRIVILEGIEID: "PR_001", Descripcion: "Proceso 1" }],
+						PROC002: [{ PRIVILEGIEID: "PR_002", Descripcion: "Proceso 2" }],
+					},
+				});
 
-                // Elementos seleccionados en las tablas
-                selectedView: null,
-                selectedProcess: null,
-                selectedPrivilege: null,
+				this.getView().setModel(oViewModel, "viewModel");
 
-                // Estados de UI para mostrar loading o errores
-                loading: false,
-                loadError: null,
+				// Al iniciar la vista, cargamos aplicaciones y vistas maestras
+				this.loadInitialData();
+			},
 
-                // Datos del formulario para crear/editar vista
-                viewFormData: {
-                    isEdit: false,
-                    VIEWSID: "",
-                    Descripcion: ""
-                },
+			/**
+			 * Carga inicial de datos: aplicaciones + vistas disponibles
+			 */
+			loadInitialData: async function () {
+				const oModel = this.getView().getModel("viewModel");
+				oModel.setProperty("/loading", true);
 
-                // Privilegios de prueba (simulados)
-                mockPrivileges: {
-                    "PROC001_UPDATED": [{ PRIVILEGIEID: "PR_UPD", Descripcion: "Actualizar" }],
-                    "PROC004":         [{ PRIVILEGIEID: "PR_004", Descripcion: "Proceso 4" }],
-                    "PROC_FINAL_01":   [{ PRIVILEGIEID: "PR_F01", Descripcion: "Proceso Final" }],
-                    "PROC001":         [{ PRIVILEGIEID: "PR_001", Descripcion: "Proceso 1" }],
-                    "PROC002":         [{ PRIVILEGIEID: "PR_002", Descripcion: "Proceso 2" }],
-                }
-            });
+				try {
+					// Ejecuta ambas consultas al mismo tiempo para mayor velocidad
+					const [oAppData, aMasterViews] = await Promise.all([
+						this._fetchAppData(),
+						this._fetchMasterViews(),
+					]);
 
-            this.getView().setModel(oViewModel, "viewModel");
-            this.fetchAllData();
-        },
+					oModel.setProperty("/applications", oAppData.applications);
+					oModel.setProperty("/masterDataMap", oAppData.masterDataMap);
+					oModel.setProperty("/masterViews", aMasterViews);
+					oModel.setProperty("/privilegesMap", oModel.getProperty("/mockPrivileges"));
+				} catch (err) {
+					oModel.setProperty("/loadError", err.message);
+					MessageBox.error("Error al cargar los datos: " + err.message);
+				} finally {
+					oModel.setProperty("/loading", false);
+				}
+			},
 
-        /**
-         * Obtiene todas las aplicaciones desde la API.
-         * Luego reorganiza la información en un formato más fácil de utilizar desde la UI.
-         */
-        fetchAllData: async function () {
-            const oModel = this.getView().getModel("viewModel");
-            const dbServer = "MongoDB"; 
-            const apiRoute = `http://localhost:3333/api/application/crud?ProcessType=getAplications&dbserver=${dbServer}&LoggedUser=AGUIZARE`;
+			/**
+			 * Evento cuando el usuario cambia de aplicación.
+			 * Aquí reconstruimos las vistas y procesos asignados.
+			 */
+			onAppSelectionChange: function (oEvent) {
+				const oModel = this.getView().getModel("viewModel");
+				const sSelectedAppId = oEvent.getParameter("selectedItem").getKey();
+				oModel.setProperty("/selectedAppId", sSelectedAppId);
 
-            oModel.setProperty("/loading", true);
-            oModel.setProperty("/loadError", null);
+				this._clearSelections(); // limpiamos la selección en tablas
 
-            try {
-                const res = await fetch(apiRoute, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
+				try {
+					const oMasterMap = oModel.getProperty("/masterDataMap");
+					const aMasterViews = oModel.getProperty("/masterViews");
 
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                
-                // Obtenemos la lista de aplicaciones del backend
-                const aAllAppsData = data.data[0].dataRes || [];
+					// Datos de la app seleccionada o valores vacíos si no tiene nada asignado
+					const oAppData = oMasterMap[sSelectedAppId] || {
+						assignedViews: [],
+						processesMap: {},
+					};
 
-                const aApplications = []; 
-                const oMasterMap = {};    
+					const aAssignedViewIds = new Set(
+						oAppData.assignedViews.map((v) => v.VIEWSID)
+					);
 
-                // Se cargan los privilegios simulados en el modelo
-                oModel.setProperty("/privilegesMap", oModel.getProperty("/mockPrivileges"));
+					// Construimos estructura para la tabla de vistas
+					const aTableViews = aMasterViews.map((oMasterView) => ({
+						...oMasterView,
+						isAssigned: aAssignedViewIds.has(oMasterView.VIEWSID),
+						_busy: false,
+					}));
 
-                // Recorremos todas las aplicaciones recibidas
-                aAllAppsData.forEach(app => {
-                    // Agregamos la app al selector
-                    aApplications.push({
-                        APPID: app.APPID,
-                        NAME: app.NAME 
-                    });
+					oModel.setProperty("/views", aTableViews);
+					oModel.setProperty("/processesMap", oAppData.processesMap);
+				} catch (err) {
+					MessageBox.error("Error al procesar los datos: " + err.message);
+					oModel.setProperty("/views", []);
+				}
+			},
 
-                    const aViews = [];
-                    const oProcessesMap = {};
-                    const aRawViews = app.VIEWS || [];
+			/**
+			 * Marca o desmarca una vista como asignada a la aplicación
+			 */
+			onAssignViewToggle: async function (oEvent) {
+				const oModel = this.getView().getModel("viewModel");
+				const bSelected = oEvent.getParameter("selected");
+				const oContext = oEvent.getSource().getBindingContext("viewModel");
+				const oView = oContext.getObject();
+				const sAppId = oModel.getProperty("/selectedAppId");
 
-                    // Recorremos todas las vistas de la aplicación
-                    aRawViews.forEach(view => {
-                        aViews.push({
-                            VIEWSID: view.VIEWSID,
-                            Descripcion: view.VIEWSID  // Aún no recibimos descripciones desde backend
-                        });
+				if (!sAppId) return;
 
-                        const aProcesses = [];
-                        const aRawProcesses = view.PROCESS || [];
+				// Indicamos que esa fila está "ocupada" mientras se realiza la operación
+				oModel.setProperty(oContext.getPath() + "/_busy", true);
 
-                        // Recorremos los procesos dentro de cada vista
-                        aRawProcesses.forEach(proc => {
-                            aProcesses.push({
-                                PROCESSID: proc.PROCESSID,
-                                Descripcion: proc.PROCESSID // Sin descripción aún
-                            });
-                        });
-                        
-                        oProcessesMap[view.VIEWSID] = aProcesses;
-                    });
+				try {
+					if (bSelected) {
+						await this._assignViewToApp(sAppId, oView.VIEWSID);
+						MessageBox.success(`Vista "${oView.Descripcion}" asignada.`);
 
-                    // Guardamos todo lo procesado para esta aplicación
-                    oMasterMap[app.APPID] = {
-                        views: aViews,
-                        processesMap: oProcessesMap
-                    };
-                });
+						// Al asignar la vista, consultamos sus procesos
+						const aProcesses = await this._fetchProcessesForView(oView.VIEWSID);
+						oModel.setProperty(`/processesMap/${oView.VIEWSID}`, aProcesses);
+					} else {
+						await this._unassignViewFromApp(sAppId, oView.VIEWSID);
+						MessageBox.warning(`Vista "${oView.Descripcion}" desasignada.`);
 
-                // Finalmente, actualizamos el modelo
-                oModel.setProperty("/applications", aApplications);
-                oModel.setProperty("/masterDataMap", oMasterMap);
+						// Al desasignar, limpiamos procesos asociados de pantalla
+						oModel.setProperty(`/processesMap/${oView.VIEWSID}`, []);
+						if (oModel.getProperty("/selectedView")?.VIEWSID === oView.VIEWSID) {
+							this._clearProcessAndPrivilegeSelection();
+						}
+					}
+				} catch (err) {
+					MessageBox.error("Error al actualizar la asignación: " + err.message);
 
-            } catch (err) {
-                oModel.setProperty("/loadError", err.message || String(err));
-                MessageBox.error("Error al cargar datos: " + err.message);
-            } finally {
-                oModel.setProperty("/loading", false);
-            }
-        },
+					// Si falló, revertimos checkbox visualmente
+					oModel.setProperty(oContext.getPath() + "/isAssigned", !bSelected);
+				} finally {
+					oModel.setProperty(oContext.getPath() + "/_busy", false);
+				}
+			},
 
-        /**
-         * Se ejecuta cuando el usuario escoge una aplicación del Select.
-         * Actualiza las tablas y limpia selecciones previas.
-         */
-        onAppSelectionChange: function(oEvent) {
-            const oModel = this.getView().getModel("viewModel");
-            const sSelectedAppId = oEvent.getParameter("selectedItem").getKey();
-            const oMasterMap = oModel.getProperty("/masterDataMap");
+			/**
+			 * Cuando el usuario selecciona una vista, se muestran los procesos asociados
+			 */
+			onViewSelectionChange: function (oEvent) {
+				const oModel = this.getView().getModel("viewModel");
+				const oContext = oEvent.getParameter("rowContext");
 
-            const oAppData = oMasterMap[sSelectedAppId] || { views: [], processesMap: {} };
+				this._clearProcessAndPrivilegeSelection();
 
-            oModel.setProperty("/views", oAppData.views);
-            oModel.setProperty("/processesMap", oAppData.processesMap);
+				if (!oContext) return;
 
-            // Limpiar todo lo seleccionado en tablas
-            oModel.setProperty("/selectedView", null);
-            oModel.setProperty("/selectedProcess", null);
-            oModel.setProperty("/selectedPrivilege", null);
-            oModel.setProperty("/filteredProcesses", []);
-            oModel.setProperty("/filteredPrivileges", []);
-            this.byId("viewsTable").clearSelection();
-            this.byId("processesTable").clearSelection();
-            this.byId("privilegesTable").clearSelection();
-        },
+				const oSelectedView = oContext.getObject();
+				oModel.setProperty("/selectedView", oSelectedView);
 
-        /**
-         * Se ejecuta cuando el usuario selecciona una vista.
-         * Carga los procesos correspondientes a esa vista.
-         */
-        onViewSelectionChange: function (oEvent) {
-            const oModel = this.getView().getModel("viewModel");
-            const oContext = oEvent.getParameter("rowContext");
-            
-            if (!oContext) { 
-                // Vista deseleccionada → limpiamos todo lo relacionado
-                oModel.setProperty("/selectedView", null);
-                oModel.setProperty("/filteredProcesses", []);
-                oModel.setProperty("/filteredPrivileges", []);
-                oModel.setProperty("/selectedProcess", null);
-                oModel.setProperty("/selectedPrivilege", null);
-                this.byId("processesTable").clearSelection();
-                this.byId("privilegesTable").clearSelection();
-                return;
-            }
+				if (!oSelectedView.isAssigned) {
+					MessageBox.information(
+						"Esta vista aún no está asignada. Activa la casilla para gestionarla."
+					);
+					this.byId("viewsTable").clearSelection();
+					oModel.setProperty("/selectedView", null);
+					return;
+				}
 
-            const oSelectedView = oContext.getObject();
-            const sViewId = oSelectedView.VIEWSID;
-            const oProcessesMap = oModel.getProperty("/processesMap");
+				oModel.setProperty(
+					"/filteredProcesses",
+					oModel.getProperty("/processesMap")[oSelectedView.VIEWSID] || []
+				);
+			},
 
-            oModel.setProperty("/selectedView", oSelectedView);
-            oModel.setProperty("/filteredProcesses", oProcessesMap[sViewId] || []);
-            
-            // Limpiar selección de procesos y privilegios
-            oModel.setProperty("/filteredPrivileges", []);
-            oModel.setProperty("/selectedProcess", null);
-            oModel.setProperty("/selectedPrivilege", null);
-            this.byId("processesTable").clearSelection();
-            this.byId("privilegesTable").clearSelection();
-        },
+			/**
+			 * Al seleccionar un proceso, mostramos sus privilegios
+			 */
+			onProcessSelectionChange: function (oEvent) {
+				const oModel = this.getView().getModel("viewModel");
+				const oContext = oEvent.getParameter("rowContext");
 
-        /**
-         * Cuando se selecciona un proceso, mostramos los privilegios asociados.
-         */
-        onProcessSelectionChange: function (oEvent) {
-            const oModel = this.getView().getModel("viewModel");
-            const oContext = oEvent.getParameter("rowContext");
+				oModel.setProperty("/filteredPrivileges", []);
+				oModel.setProperty("/selectedPrivilege", null);
+				this.byId("privilegesTable").clearSelection();
 
-            if (!oContext) {
-                oModel.setProperty("/selectedProcess", null);
-                oModel.setProperty("/filteredPrivileges", []);
-                oModel.setProperty("/selectedPrivilege", null);
-                this.byId("privilegesTable").clearSelection();
-                return;
-            }
+				if (!oContext) return;
 
-            const oSelectedProcess = oContext.getObject();
-            const sProcessId = oSelectedProcess.PROCESSID;
-            const oPrivilegesMap = oModel.getProperty("/privilegesMap");
+				const oSelectedProcess = oContext.getObject();
+				oModel.setProperty("/selectedProcess", oSelectedProcess);
 
-            oModel.setProperty("/selectedProcess", oSelectedProcess);
-            oModel.setProperty("/filteredPrivileges", oPrivilegesMap[sProcessId] || []);
-            oModel.setProperty("/selectedPrivilege", null);
-            this.byId("privilegesTable").clearSelection();
-        },
+				oModel.setProperty(
+					"/filteredPrivileges",
+					oModel.getProperty("/privilegesMap")[oSelectedProcess.PROCESSID] || []
+				);
+			},
 
-        onPrivilegeSelectionChange: function (oEvent) {
-            const oModel = this.getView().getModel("viewModel");
-            const oContext = oEvent.getParameter("rowContext");
-            oModel.setProperty("/selectedPrivilege", oContext ? oContext.getObject() : null);
-        },
+			onPrivilegeSelectionChange: function (oEvent) {
+				const oContext = oEvent.getParameter("rowContext");
+				this.getView()
+					.getModel("viewModel")
+					.setProperty(
+						"/selectedPrivilege",
+						oContext ? oContext.getObject() : null
+					);
+			},
 
-        /** -------------------- Búsquedas -------------------- */
+			/**
+			 * Filtro de búsqueda de vistas por ID o descripción
+			 */
+			onSearchViews: function (oEvent) {
+				const sQuery = oEvent.getParameter("query").toLowerCase();
+				const aFilters = [];
 
-        onSearchViews: function (oEvent) {
-            const sQuery = oEvent.getParameter("query").toLowerCase();
-            const aFilters = [];
-            if (sQuery) {
-                aFilters.push(new Filter({
-                    filters: [
-                        new Filter("VIEWSID", FilterOperator.Contains, sQuery),
-                        new Filter("Descripcion", FilterOperator.Contains, sQuery)
-                    ],
-                    and: false
-                }));
-            }
-            this.byId("viewsTable").getBinding("rows").filter(aFilters);
-        },
+				if (sQuery) {
+					aFilters.push(
+						new Filter({
+							filters: [
+								new Filter("VIEWSID", FilterOperator.Contains, sQuery),
+								new Filter("Descripcion", FilterOperator.Contains, sQuery),
+							],
+							and: false,
+						})
+					);
+				}
 
-        onSearchProcesses: function (oEvent) {
-            const sQuery = oEvent.getParameter("query").toLowerCase();
-            const aFilters = [];
-            if (sQuery) {
-                aFilters.push(new Filter({
-                    filters: [
-                        new Filter("PROCESSID", FilterOperator.Contains, sQuery),
-                        new Filter("Descripcion", FilterOperator.Contains, sQuery)
-                    ],
-                    and: false
-                }));
-            }
-            this.byId("processesTable").getBinding("rows").filter(aFilters);
-        },
+				this.byId("viewsTable").getBinding("rows").filter(aFilters);
+			},
 
-        onSearchPrivileges: function (oEvent) {
-            const sQuery = oEvent.getParameter("query").toLowerCase();
-            const aFilters = [];
-            if (sQuery) {
-                aFilters.push(new Filter({
-                    filters: [
-                        new Filter("PRIVILEGIEID", FilterOperator.Contains, sQuery),
-                        new Filter("Descripcion", FilterOperator.Contains, sQuery)
-                    ],
-                    and: false
-                }));
-            }
-            this.byId("privilegesTable").getBinding("rows").filter(aFilters);
-        },
+			/**
+			 * Lazy loading del diálogo de alta/edición de vista
+			 */
+			_getDialog: function () {
+				if (!this._oViewDialog) {
+					this._oViewDialog = this.loadFragment({
+						id: this.getView().getId(),
+						name: "com.my.users.fragment.ViewDialog",
+						controller: this,
+					}).then((oDialog) => {
+						this.getView().addDependent(oDialog);
+						return oDialog;
+					});
+				}
+				return this._oViewDialog;
+			},
 
-        /** -------------------- Diálogo para crear/editar vistas -------------------- */
+			/**
+			 * Abrimos el diálogo para crear una vista
+			 */
+			onCreateView: function () {
+				this.getView().getModel("viewModel").setProperty("/viewFormData", {
+					isEdit: false,
+					VIEWSID: "",
+					Descripcion: "",
+				});
 
-        _getDialog: function () {
-            if (!this._oViewDialog) {
-                this._oViewDialog = this.loadFragment({
-                    id: this.getView().getId(),
-                    name: "com.my.users.fragment.ViewDialog",
-                    controller: this
-                }).then(function (oDialog) {
-                    this.getView().addDependent(oDialog);
-                    return oDialog;
-                }.bind(this));
-            }
-            return this._oViewDialog;
-        },
+				this._getDialog().then((oDialog) => {
+					oDialog.setTitle("Crear Nueva Vista");
+					oDialog.open();
+				});
+			},
 
-        onCreateView: function () {
-            this.getView().getModel("viewModel").setProperty("/viewFormData", {
-                isEdit: false,
-                VIEWSID: "",
-                Descripcion: ""
-            });
-            
-            this._getDialog().then(function (oDialog) {
-                oDialog.setTitle("Crear Nueva Vista");
-                oDialog.open();
-            });
-        },
+			/**
+			 * Abre el diálogo precargando los valores para editar una vista existente
+			 */
+			onEditView: function () {
+				const oSelectedView = this.getView()
+					.getModel("viewModel")
+					.getProperty("/selectedView");
 
-        onEditView: function () {
-            const oSelectedView = this.getView().getModel("viewModel").getProperty("/selectedView");
-            if (!oSelectedView) {
-                MessageBox.warning("Por favor, seleccione una vista para editar.");
-                return;
-            }
-            
-            this.getView().getModel("viewModel").setProperty("/viewFormData", {
-                isEdit: true,
-                ...oSelectedView 
-            });
-            
-            this._getDialog().then(function (oDialog) {
-                oDialog.setTitle("Editar Vista");
-                oDialog.open();
-            });
-        },
+				if (!oSelectedView) {
+					MessageBox.warning("Selecciona una vista para editar.");
+					return;
+				}
 
-        onCloseDialog: function () {
-            this._getDialog().then(oDialog => oDialog.close());
-        },
+				this.getView()
+					.getModel("viewModel")
+					.setProperty("/viewFormData", {
+						isEdit: true,
+						...oSelectedView,
+					});
 
-        onSaveView: function () {
-            const oModel = this.getView().getModel("viewModel");
-            const oFormData = oModel.getProperty("/viewFormData");
+				this._getDialog().then((oDialog) => {
+					oDialog.setTitle("Editar Vista");
+					oDialog.open();
+				});
+			},
 
-            const sAppId = oModel.getProperty("/selectedAppId"); // Se usa para guardar en la API
+			onCloseDialog: function () {
+				this._getDialog().then((oDialog) => oDialog.close());
+			},
 
-            if (oFormData.isEdit) {
-                console.log("Actualizando vista para App " + sAppId, oFormData);
-                MessageBox.success("La vista se actualizó correctamente (simulación).");
-            } else {
-                console.log("Creando nueva vista para App " + sAppId, oFormData);
-                MessageBox.success("Vista creada (simulación).");
-            }
-            
-            this.onCloseDialog();
-        },
+			/**
+			 * Guarda los cambios (crear o editar vista)
+			 */
+			onSaveView: async function () {
+				const oModel = this.getView().getModel("viewModel");
+				const oFormData = oModel.getProperty("/viewFormData");
 
-        /** -------------------- Acciones eliminar -------------------- */
+				try {
+					if (oFormData.isEdit) {
+						await this._updateMasterView(oFormData);
+						MessageBox.success("Vista actualizada.");
+					} else {
+						await this._createMasterView(oFormData);
+						MessageBox.success("Vista creada.");
+					}
 
-        onDeleteView: function () {
-            const oModel = this.getView().getModel("viewModel");
-            const oSelectedView = oModel.getProperty("/selectedView");
-            if (!oSelectedView) return;
+					this.onCloseDialog();
 
-            MessageBox.confirm(`¿Eliminar la vista "${oSelectedView.Descripcion}"?`, {
-                title: "Confirmación",
-                onClose: function (sAction) {
-                    if (sAction === MessageBox.Action.OK) {
-                        console.log("Vista eliminada:", oSelectedView.VIEWSID);
-                    }
-                }.bind(this)
-            });
-        },
+					// Actualizamos la tabla de vistas maestras
+					const aMasterViews = await this._fetchMasterViews();
+					oModel.setProperty("/masterViews", aMasterViews);
 
-        onDeleteProcess: function () {
-            const oModel = this.getView().getModel("viewModel");
-            const oSelectedProcess = oModel.getProperty("/selectedProcess");
-            if (!oSelectedProcess) return;
+					// Si había una aplicación seleccionada, refrescamos el selector
+					if (oModel.getProperty("/selectedAppId")) {
+						this.byId("appSelector").fireEvent("change", {
+							selectedItem: this.byId("appSelector").getSelectedItem(),
+						});
+					}
+				} catch (err) {
+					MessageBox.error(err.message || "Error al guardar.");
+				}
+			},
 
-            MessageBox.confirm(`¿Eliminar el proceso "${oSelectedProcess.Descripcion}"?`, {
-                title: "Confirmación",
-                onClose: function (sAction) {
-                    if (sAction === MessageBox.Action.OK) {
-                        console.log("Proceso eliminado:", oSelectedProcess.PROCESSID);
-                    }
-                }.bind(this)
-            });
-        },
+			/**
+			 * Guarda una nueva vista en la base de datos
+			 */
+			_createMasterView: async function (oViewData) {
+				const sApiRoute = `${this._sBaseUrl}/views/crud?ProcessType=addView&${this._sApiParams}`;
 
-        onDeletePrivilege: function () {
-            const oModel = this.getView().getModel("viewModel");
-            const oSelectedPrivilege = oModel.getProperty("/selectedPrivilege");
-            if (!oSelectedPrivilege) return;
+				const oBody = {
+					viewId: oViewData.VIEWSID,
+					data: {
+						VIEWSID: oViewData.VIEWSID,
+						DESCRIPCION: oViewData.Descripcion,
+					},
+				};
 
-            MessageBox.confirm(`¿Eliminar el privilegio "${oSelectedPrivilege.Descripcion}"?`, {
-                title: "Confirmación",
-                onClose: function (sAction) {
-                    if (sAction === MessageBox.Action.OK) {
-                        console.log("Privilegio eliminado:", oSelectedPrivilege.PRIVILEGIEID);
-                    }
-                }.bind(this)
-            });
-        },
+				const res = await fetch(sApiRoute, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(oBody),
+				});
 
-        /** TODO: Implementar cuando tengas API para crear procesos */
-        onCreateProcess: function() {
-            MessageBox.information("Función para crear proceso (pendiente de implementación).");
-        },
+				if (!res.ok) {
+					let msg = `Error HTTP ${res.status}`;
+					try {
+						msg = (await res.json()).messageUSR || msg;
+					} catch (e) {}
+					throw new Error(msg);
+				}
 
-        /** TODO: Implementar cuando tengas API para crear privilegios */
-        onCreatePrivilege: function() {
-            MessageBox.information("Función para crear privilegio (pendiente de implementación).");
-        }
-    });
-});
+				const data = await res.json();
+				if (!data.success) throw new Error(data.messageUSR);
+
+				return data;
+			},
+
+			/**
+			 * Eliminar vista (pendiente de implementación API real)
+			 */
+			onDeleteView: function () {
+				const oModel = this.getView().getModel("viewModel");
+				const oSelectedView = oModel.getProperty("/selectedView");
+				if (!oSelectedView) return;
+
+				MessageBox.confirm(
+					`¿Eliminar la vista "${oSelectedView.Descripcion}"?`,
+					{
+						title: "Confirmación",
+						onClose: function (sAction) {
+							if (sAction === MessageBox.Action.OK) {
+								console.log("Vista eliminada:", oSelectedView.VIEWSID);
+							}
+						}.bind(this),
+					}
+				);
+			},
+
+			onDeleteProcess: function () {
+				const oSelectedProcess =
+					this.getView().getModel("viewModel").getProperty("/selectedProcess");
+				if (!oSelectedProcess) return;
+
+				MessageBox.confirm(
+					`¿Eliminar el proceso "${oSelectedProcess.Descripcion}"?`,
+					{
+						title: "Confirmación",
+						onClose: (sAction) => {
+							if (sAction === MessageBox.Action.OK) {
+								console.log("Proceso eliminado:", oSelectedProcess.PROCESSID);
+							}
+						},
+					}
+				);
+			},
+
+			onDeletePrivilege: function () {
+				const oSelectedPrivilege =
+					this.getView().getModel("viewModel").getProperty("/selectedPrivilege");
+				if (!oSelectedPrivilege) return;
+
+				MessageBox.confirm(
+					`¿Eliminar el privilegio "${oSelectedPrivilege.Descripcion}"?`,
+					{
+						title: "Confirmación",
+						onClose: (sAction) => {
+							if (sAction === MessageBox.Action.OK) {
+								console.log(
+									"Privilegio eliminado:",
+									oSelectedPrivilege.PRIVILEGIEID
+								);
+							}
+						},
+					}
+				);
+			},
+
+			onCreateProcess: function () {
+				MessageBox.information("Función para crear proceso.");
+			},
+
+			onCreatePrivilege: function () {
+				MessageBox.information("Función para crear privilegio.");
+			},
+
+			/**
+			 * Resetea toda la selección de tablas
+			 */
+			_clearSelections: function () {
+				const oModel = this.getView().getModel("viewModel");
+				oModel.setProperty("/views", []);
+				oModel.setProperty("/selectedView", null);
+				this._clearProcessAndPrivilegeSelection();
+			},
+
+			/**
+			 * Resetea selección de procesos y privilegios
+			 */
+			_clearProcessAndPrivilegeSelection: function () {
+				const oModel = this.getView().getModel("viewModel");
+				oModel.setProperty("/selectedProcess", null);
+				oModel.setProperty("/selectedPrivilege", null);
+				oModel.setProperty("/filteredProcesses", []);
+				oModel.setProperty("/filteredPrivileges", []);
+				this.byId("processesTable").clearSelection();
+				this.byId("privilegesTable").clearSelection();
+			},
+
+			/**
+			 * Carga aplicaciones desde la API y estructura el resultado
+			 */
+			_fetchAppData: async function () {
+				const sApiRoute = `${this._sBaseUrl}/application/crud?ProcessType=getAplications&${this._sApiParams}`;
+
+				const res = await fetch(sApiRoute, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({}),
+				});
+
+				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+				const data = await res.json();
+				if (!data.success || !data.data[0].dataRes)
+					throw new Error(data.messageUSR);
+
+				const aAllAppsData = data.data[0].dataRes;
+
+				const aApplications = [];
+				const oMasterMap = {};
+
+				// Recorremos todas las apps para construir estructuras listas para UI
+				aAllAppsData.forEach((app) => {
+					aApplications.push({
+						APPID: app.APPID,
+						NAME: app.NAME,
+					});
+
+					const aAssignedViews = [];
+					const oProcessesMap = {};
+
+					(app.VIEWS || []).forEach((view) => {
+						aAssignedViews.push({ VIEWSID: view.VIEWSID });
+
+						const aProcesses = [];
+						(view.PROCESS || []).forEach((proc) => {
+							aProcesses.push({
+								PROCESSID: proc.PROCESSID,
+								Descripcion: proc.PROCESSID,
+							});
+						});
+
+						oProcessesMap[view.VIEWSID] = aProcesses;
+					});
+
+					oMasterMap[app.APPID] = {
+						assignedViews: aAssignedViews,
+						processesMap: oProcessesMap,
+					};
+				});
+
+				return { applications: aApplications, masterDataMap: oMasterMap };
+			},
+
+			/**
+			 * Obtiene vistas maestras desde la API
+			 */
+			_fetchMasterViews: async function () {
+				const sApiRoute = `${this._sBaseUrl}/views/crud?ProcessType=getAll&${this._sApiParams}`;
+
+				const res = await fetch(sApiRoute, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({}),
+				});
+
+				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+				const data = await res.json();
+
+				if (!data.success || !data.data[0].dataRes)
+					throw new Error(data.messageUSR);
+
+				return data.data[0].dataRes.map((view) => ({
+					VIEWSID: view.VIEWSID,
+					Descripcion: view.DESCRIPCION,
+				}));
+			},
+
+			/**
+			 * Simulación de carga de procesos (puede conectarse a API después)
+			 */
+			_fetchProcessesForView: async function (sViewId) {
+				if (sViewId === "VIEW001") {
+					return [
+						{ PROCESSID: "PROC001", Descripcion: "PROC001" },
+						{ PROCESSID: "PROC002", Descripcion: "PROC002" },
+					];
+				}
+
+				if (sViewId === "VIEW003") {
+					return [
+						{ PROCESSID: "PROC001_UPDATED", Descripcion: "PROC001_UPDATED" },
+						{ PROCESSID: "PROC004", Descripcion: "PROC004" },
+					];
+				}
+
+				return [];
+			},
+
+			/**
+			 * Guardar relación App -> Vista en el backend
+			 */
+			_assignViewToApp: async function (sAppId, sViewId) {
+				const sApiRoute = `${this._sBaseUrl}/application/crud?ProcessType=addView&${this._sApiParams}`;
+
+				const oBody = {
+					appId: sAppId,
+					viewId: "String",
+					processId: "String",
+					data: {
+						VIEWSID: sViewId,
+					},
+				};
+
+				const res = await fetch(sApiRoute, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(oBody),
+				});
+
+				if (!res.ok) {
+					let msg = `Error HTTP ${res.status}`;
+					try {
+						msg = (await res.json()).messageUSR || msg;
+					} catch (e) {}
+					throw new Error(msg);
+				}
+
+				const data = await res.json();
+				if (!data.success) throw new Error(data.messageUSR);
+				return data;
+			},
+
+			/**
+			 * Eliminar relación App -> Vista del backend
+			 */
+			_unassignViewFromApp: async function (sAppId, sViewId) {
+				const sApiRoute = `${this._sBaseUrl}/application/crud?ProcessType=deleteHardView&${this._sApiParams}`;
+
+				const oBody = {
+					appId: sAppId,
+					viewId: sViewId,
+					processId: "String",
+				};
+
+				const res = await fetch(sApiRoute, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(oBody),
+				});
+
+				if (!res.ok) {
+					let msg = `Error HTTP ${res.status}`;
+					try {
+						msg = (await res.json()).messageUSR || msg;
+					} catch (e) {}
+					throw new Error(msg);
+				}
+
+				const data = await res.json();
+				if (!data.success) throw new Error(data.messageUSR);
+				return data;
+			},
+		});
+	}
+);
