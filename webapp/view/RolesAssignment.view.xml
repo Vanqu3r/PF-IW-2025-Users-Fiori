@@ -1,0 +1,62 @@
+<mvc:View
+    controllerName="com.my.users.controller.RolesAssignment"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    displayBlock="true">
+
+    <Page
+        id="rolesAssignmentPage"
+        title="Asignar Roles (Usuario: {view>/userId})" 
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        busy="{view>/busy}"> 
+
+        <content>
+            <Table
+                id="rolesTable"
+                mode="MultiSelect"
+                inset="false"
+                items="{
+                    path: 'roles>/value',
+                    sorter: { path: 'ROLENAME' }
+                }"
+                class="sapUiResponsiveContentPadding">
+                
+                <headerToolbar>
+                    <Toolbar>
+                        <Title text="Roles Disponibles" level="H2" />
+                        <ToolbarSpacer />
+                        <Button 
+                            id="assignRoleButton"
+                            text="Asignar Seleccionados" 
+                            icon="sap-icon://add"
+                            type="Accept"
+                            press=".onAssignRolesPress" />
+                    </Toolbar>
+                </headerToolbar>
+                
+                <columns>
+                    <Column width="12em">
+                        <Text text="ID del Rol" />
+                    </Column>
+                    <Column>
+                        <Text text="Nombre del Rol" />
+                    </Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="Descripción" />
+                    </Column>
+                </columns>
+                
+                <items>
+                    <ColumnListItem type="Active">
+                        <cells>
+                            <Text text="{roles>ROLEID}" />
+                            <Text text="{roles>ROLENAME}" />
+                            <Text text="{roles>DESCRIPTION}" />
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </content>
+    </Page>
+</mvc:View>

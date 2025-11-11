@@ -1,121 +1,138 @@
 {
-	"_version": "1.12.0",
-
-	"sap.app": {
-		"id": "com.my.users",
-		"type": "application",
-		"i18n": "i18n/i18n.properties",
-		"title": "{{appTitle}}",
-		"description": "{{appDescription}}",
-		"applicationVersion": {
-			"version": "${version}"
-		},
-		"sourceTemplate": {
-			"id": "generator-ui5-app",
-			"version": "1.1.0"
-		}
-	},
-
-	"sap.ui": {
-		"technology": "UI5",
-		"icons": {},
-		"deviceTypes": {
-			"desktop": true,
-			"tablet": true,
-			"phone": true
-		}
-	},
-
-	"sap.ui5": {
-    "rootView": {
-        "viewName": "com.my.users.view.App",
-        "type": "XML",
-        "id": "appView" 
-    },
-    "dependencies": {
-        "minUI5Version": "1.141.2",
-        "libs": {
-            "sap.ui.core": {},
-            "sap.m": {},
-            "sap.ui.table": {},
-            "sap.ui.layout": {}
-    
-          
-        }
-    },
-    "handleValidation": true,
-    "contentDensities": {
-        "compact": true,
-        "cozy": true
-    },
-    "models": {
-        "i18n": {
-            "type": "sap.ui.model.resource.ResourceModel",
-            "settings": {
-                "bundleName": "com.my.users.i18n.i18n",
-                "supportedLocales": ["en", "de"],
-                "fallbackLocale": "en",
-                "async": true
-            }
-        }
-    },
-    "routing": {
-        "config": {
-            "routerClass": "sap.m.routing.Router",
-            "viewType": "XML",
-            "viewPath": "com.my.users.view",
-            "controlId": "app", 
-            "controlAggregation": "pages"
+    "_version": "1.12.0",
+    "sap.app": {
+        "id": "com.my.users",
+        "type": "application",
+        "i18n": "i18n/i18n.properties",
+        "title": "{{appTitle}}",
+        "description": "{{appDescription}}",
+        "applicationVersion": {
+            "version": "${version}"
         },
-        "routes": [
-            {
-                "pattern": "",
-                "name": "home", 
-                "target": "main"
-            },
-            {
-                "pattern": "users",
-                "name": "users",
-                "target": "users"
-            },
-            {
-                "pattern": "roles",
-                "name": "roles",
-                "target": "roles"
-            },
-            {
-                "pattern": "application",
-                "name": "application",
-                "target": "application"
-            },
-            {
-                "pattern": "process",
-                "name": "process",
-                "target": "process"
+        "sourceTemplate": {
+            "id": "generator-ui5-app",
+            "version": "1.1.0",
+            "toolsId": "b2e935c7-0e44-44f1-92eb-02b50e333df2"
+        }
+    },
+    "sap.ui": {
+        "technology": "UI5",
+        "icons": {},
+        "deviceTypes": {
+            "desktop": true,
+            "tablet": true,
+            "phone": true
+        }
+    },
+    "sap.ui5": {
+        "rootView": {
+            "viewName": "com.my.users.view.App",
+            "type": "XML",
+            "id": "appView"
+        },
+        "dependencies": {
+            "minUI5Version": "1.141.2",
+            "libs": {
+                "sap.ui.core": {},
+                "sap.m": {}
             }
-        ],
-        "targets": {
-            "main": {
-                "viewId": "main",
-                "viewName": "Main" 
+        },
+        "handleValidation": true,
+        "contentDensities": {
+            "compact": true,
+            "cozy": true
+        },
+        "models": {
+            "i18n": {
+                "type": "sap.ui.model.resource.ResourceModel",
+                "settings": {
+                    "bundleName": "com.my.users.i18n.i18n",
+                    "supportedLocales": [
+                        "en",
+                        "de"
+                    ],
+                    "fallbackLocale": "en",
+                    "async": true
+                }
+            }
+        },
+        "routing": {
+            "config": {
+                "routerClass": "sap.m.routing.Router",
+                "viewType": "XML",
+                "controlAggregation": "detailPages",
+                "viewPath": "com.my.users.view",
+                "controlId": "app"
             },
-            "users": {
-                "viewId": "users",
-                "viewName": "Users" 
-            },
-            "roles": {
-                "viewId": "roles",
-                "viewName": "Roles" 
-            },
-            "application": {
-                "viewId": "application",
-                "viewName": "application" 
-            },
-            "process": {
-                "viewId": "process",
-                "viewName": "Process" 
+            "routes": [
+                {
+                    "pattern": "",
+                    "name": "home",
+                    "target": "main"
+                },
+                {
+                    "pattern": "users",
+                    "name": "users",
+                    "target": "users"
+                },
+                {
+                    "pattern": "roles",
+                    "name": "roles",
+                    "target": "roles"
+                },
+                {
+                    "pattern": "application",
+                    "name": "application",
+                    "target": "application"
+                },
+                {
+                    "pattern": "process",
+                    "name": "process",
+                    "target": "process"
+                },
+                {
+                    "pattern": "profile/{userId}",
+                    "name": "profile",
+                    "target": "profile"
+                },
+                {
+                    "pattern": "profile/{userId}/assignRoles",
+                    "name": "assignRoles",
+                    "target": "assignRoles"
+                }
+            ],
+            "targets": {
+                "main": {
+                    "viewId": "main",
+                    "viewName": "Main"
+                },
+                "users": {
+                    "viewId": "users",
+                    "viewName": "Users"
+                },
+                "roles": {
+                    "viewId": "roles",
+                    "viewName": "Roles"
+                },
+                "application": {
+                    "viewId": "application",
+                    "viewName": "application"
+                },
+                "process": {
+                    "viewId": "process",
+                    "viewName": "Process"
+                },
+                "profile": {
+                    "viewId": "profile",
+                    "viewName": "Profile",
+                    "viewLevel": 2
+                },
+                "assignRoles": {
+                    "viewId": "RolesAssignment",
+                    "viewName": "RolesAssignment",
+                    "viewLevel": 3
+                }
             }
         }
     }
-}
 }
